@@ -10,5 +10,5 @@ export interface Donor {
   latitude: number;
   longitude: number;
   lastDonation?: Date;
-  isAvailable: boolean;
+  isAvailable?: boolean;
 }

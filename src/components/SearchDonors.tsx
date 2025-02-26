@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { findNearbyDonors } from '../services/donorService';
-import { Donor } from '../types/donor';
+import { getDonorsByBloodGroup } from '../services/donorService';
+import type { Donor, BloodGroup } from '../types';
 import { Search, Droplet, Phone, Mail, MapPin } from 'lucide-react';
+import { Button } from './ui/Button';
+import { Card } from './ui/Card';
 
 const SearchDonors = () => {
-  const [bloodGroup, setBloodGroup] = useState('');
+  const [bloodGroup, setBloodGroup] = useState<BloodGroup>('A+');
   const [donors, setDonors] = useState<Donor[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -13,13 +15,8 @@ const SearchDonors = () => {
 
     setLoading(true);
     try {
-      const position = await getCurrentPosition();
-      const nearbyDonors = await findNearbyDonors(
-        bloodGroup,
-        position.coords.latitude,
-        position.coords.longitude
-      );
-      setDonors(nearbyDonors);
+      const foundDonors = await getDonorsByBloodGroup(bloodGroup);
+      setDonors(foundDonors || []); // Ensure donors is always an array
     } catch (error) {
       console.error('Error:', error);
       alert('Failed to find donors. Please try again.');
@@ -28,95 +25,93 @@ const SearchDonors = () => {
     }
   };
 
-  const getCurrentPosition = (): Promise<GeolocationPosition> => {
-    return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) {
-        reject(new Error('Geolocation is not supported'));
-      }
-      navigator.geolocation.getCurrentPosition(resolve, reject);
-    });
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-pink-100 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-3xl mx-auto">
-        {/* Search Section */}
-        <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
-          <div className="text-center mb-8">
-            <Search className="mx-auto h-12 w-12 text-red-500" />
-            <h2 className="mt-4 text-4xl font-bold text-gray-900">Find Blood Donors</h2>
-            <p className="mt-2 text-gray-600 text-lg">
-              Search for nearby donors based on your blood group. Every second counts!
-            </p>
-          </div>
-
-          <div className="flex gap-4">
-            <select
-              className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 text-lg"
-              value={bloodGroup}
-              onChange={(e) => setBloodGroup(e.target.value)}
-            >
-              <option value="">Select blood group</option>
-              {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map((group) => (
-                <option key={group} value={group}>{group}</option>
-              ))}
-            </select>
-
-            <button
-              onClick={handleSearch}
-              disabled={loading || !bloodGroup}
-              className="px-6 py-2 bg-red-600 text-white rounded-md text-lg font-medium hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
-            >
-              {loading ? 'Searching...' : 'Search'}
-            </button>
-          </div>
+    <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
+        <div className="text-center">
+          <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">
+            Find Blood Donors
+          </h2>
+          <p className="mt-3 text-xl text-gray-500">
+            Search for blood donors by blood group
+          </p>
         </div>
 
-        {/* Message after Search */}
-        {bloodGroup && !loading && donors.length === 0 && (
-          <div className="text-center text-gray-700 text-lg mb-8">
-            We hope you'll find a donor soon. <strong>May God bless you!</strong>
-          </div>
-        )}
+        <div className="mt-10">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <select
+              value={bloodGroup}
+              onChange={(e) => setBloodGroup(e.target.value as BloodGroup)}
+              className="block w-full sm:w-auto px-4 py-2 text-base border-gray-300 focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm rounded-md"
+            >
+              <option value="A+">A+</option>
+              <option value="A-">A-</option>
+              <option value="B+">B+</option>
+              <option value="B-">B-</option>
+              <option value="AB+">AB+</option>
+              <option value="AB-">AB-</option>
+              <option value="O+">O+</option>
+              <option value="O-">O-</option>
+            </select>
 
-        {/* Donor Cards */}
-        {donors.length > 0 && (
-          <div className="grid gap-6 md:grid-cols-2">
+            <Button
+              onClick={handleSearch}
+              disabled={loading}
+              icon={<Search className="w-4 h-4" />}
+            >
+              {loading ? 'Searching...' : 'Search Donors'}
+            </Button>
+          </div>
+
+          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {donors.map((donor) => (
-              <div key={donor.id} className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex items-center mb-4">
-                  <Droplet className="h-8 w-8 text-red-500 mr-3" />
-                  <div>
-                    <h3 className="text-lg font-semibold">{donor.name}</h3>
-                    <p className="text-gray-600">Blood Group: {donor.bloodGroup}</p>
+              <Card key={donor._id}>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center">
+                    <Droplet className="w-5 h-5 text-red-500 mr-2" />
+                    <span className="text-lg font-semibold">{donor.bloodGroup}</span>
                   </div>
+                  <span className={`px-2 py-1 rounded-full text-sm ${
+                    donor.isAvailable
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-red-100 text-red-800'
+                  }`}>
+                    {donor.isAvailable ? 'Available' : 'Not Available'}
+                  </span>
                 </div>
 
-                <div className="space-y-2 text-sm text-gray-600">
-                  <div className="flex items-center">
-                    <Phone className="h-4 w-4 mr-2" />
-                    <span>{donor.phone}</span>
+                <h3 className="text-xl font-medium text-gray-900">{donor.name}</h3>
+                
+                <div className="mt-4 space-y-2">
+                  <div className="flex items-center text-gray-600">
+                    <Phone className="w-4 h-4 mr-2" />
+                    <span>{donor.phoneNumber}</span>
                   </div>
-                  <div className="flex items-center">
-                    <Mail className="h-4 w-4 mr-2" />
+                  <div className="flex items-center text-gray-600">
+                    <Mail className="w-4 h-4 mr-2" />
                     <span>{donor.email}</span>
                   </div>
-                  <div className="flex items-center">
-                    <MapPin className="h-4 w-4 mr-2" />
+                  <div className="flex items-center text-gray-600">
+                    <MapPin className="w-4 h-4 mr-2" />
                     <span>{donor.address}</span>
                   </div>
                 </div>
-              </div>
+
+                {donor.lastDonation && (
+                  <div className="mt-4 text-sm text-gray-500">
+                    Last donation: {new Date(donor.lastDonation).toLocaleDateString()}
+                  </div>
+                )}
+              </Card>
             ))}
           </div>
-        )}
 
-        {/* No Donors Found */}
-        {donors.length === 0 && bloodGroup && !loading && (
-          <div className="text-center text-gray-600 text-lg">
-            No donors found in your area for the selected blood group.
-          </div>
-        )}
+          {donors.length === 0 && !loading && (
+            <div className="text-center mt-10">
+              <p className="text-gray-500">No donors found. Try a different blood group.</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
