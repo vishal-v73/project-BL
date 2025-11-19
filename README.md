@@ -38,26 +38,7 @@ bloodline/
 - TypeScript support
 - MongoDB database
 
-## Getting Started
 
-1. Install dependencies:
-   ```bash
-   npm install        # Frontend dependencies
-   cd backend && npm install  # Backend dependencies
-   ```
-
-2. Set up environment variables:
-   - Copy `.env.example` to `.env`
-   - Update the variables as needed
-
-3. Start the development servers:
-   ```bash
-   # Terminal 1 - Frontend
-   npm run dev
-
-   # Terminal 2 - Backend
-   cd backend && npm run dev
-   ```
 
 ## Technologies Used
 
